@@ -1,4 +1,5 @@
 [project]
+# This id is auto-updated by `supabase link --project-ref <ref>` — no manual replacement needed
 id = "placeholder"
 
 [db]

@@ -41,6 +41,8 @@ export class ConsentStack extends cdk.Stack {
         },
       }),
       autoBranchDeletion: true,
+      // TODO: Set via AWS Console > Amplify > Environment variables after deploy
+      // These are runtime secrets that differ per environment (see docs/SETUP.md)
       environmentVariables: {
         VITE_SUPABASE_URL: 'https://placeholder.supabase.co',
         VITE_SUPABASE_ANON_KEY: 'placeholder',

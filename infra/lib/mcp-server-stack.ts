@@ -71,7 +71,7 @@ export class McpServerStack extends cdk.Stack {
       autoDeploymentsEnabled: true,
       healthCheck: apprunner.HealthCheck.http({
         path: '/health',
-        interval: cdk.Duration.seconds(10),
+        interval: cdk.Duration.seconds(30),
         timeout: cdk.Duration.seconds(5),
         healthyThreshold: 1,
         unhealthyThreshold: 5,

@@ -52,15 +52,17 @@ This creates:
 - RLS policies (own profile, admin access, service role)
 - `custom_access_token_hook` function
 
-## Step 5: Populate Secrets Manager
+## Step 5: Store GitHub Token in Secrets Manager
 
-Store the Supabase service key in AWS Secrets Manager:
+Amplify needs a GitHub Personal Access Token to pull from private repos. Store it in Secrets Manager **before** CDK deploy:
 
 ```bash
-aws secretsmanager put-secret-value \
-  --secret-id {{SECRETS_PREFIX}}/supabase-service-key \
-  --secret-string "<your-service-role-key>"
+aws secretsmanager create-secret \
+  --name github-token \
+  --secret-string "ghp_your_github_pat"
 ```
+
+The token needs `repo` scope for private repositories.
 
 ## Step 6: CDK Bootstrap & Deploy
 
@@ -76,7 +78,17 @@ This deploys:
 - **McpServerStack**: App Runner service + ECR repository + IAM roles
 - **ConsentStack**: Amplify hosting for OAuth consent app
 
-## Step 7: Activate Supabase Auth Hook
+## Step 7: Populate Supabase Service Key
+
+CDK deploy (Step 6) creates the Secrets Manager entry with a placeholder value. Now update it with the real Supabase service role key:
+
+```bash
+aws secretsmanager put-secret-value \
+  --secret-id {{SECRETS_PREFIX}}/supabase-service-key \
+  --secret-string "<your-service-role-key>"
+```
+
+## Step 8: Activate Supabase Auth Hook
 
 The `custom_access_token_hook` must be enabled manually in the Supabase dashboard:
 
@@ -91,6 +103,7 @@ This injects `role` and `is_admin` claims into every JWT token.
 
 - [ ] Create ECR repository: `aws ecr create-repository --repository-name {{PROJECT_NAME}}-mcp-server`
 - [ ] Build and push Docker image to ECR (see MCP server repo README)
+- [ ] Set App Runner environment variables in AWS Console (SUPABASE_URL, SUPABASE_ANON_KEY)
 - [ ] Set Amplify environment variables in AWS Console (VITE_SUPABASE_URL, VITE_SUPABASE_ANON_KEY)
 - [ ] Verify App Runner service is running: check the `AppRunnerServiceUrl` output
 - [ ] Verify Amplify app is deployed: check the `AmplifyAppUrl` output

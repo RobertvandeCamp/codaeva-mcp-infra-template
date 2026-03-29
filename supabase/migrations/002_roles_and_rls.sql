@@ -2,6 +2,9 @@
 -- Row Level Security on user_profiles + helper functions for role checks
 
 -- Helper: get current user's role from JWT
+-- NOTE: The custom_access_token_hook (003) intentionally overrides the JWT `role` claim
+-- with the app_role from user_profiles. RLS policies should use auth.uid() for row ownership
+-- checks, not auth.role(), since `role` is now the application role (e.g. 'admin', 'viewer').
 CREATE OR REPLACE FUNCTION {{SUPABASE_SCHEMA}}.get_my_role()
 RETURNS text
 LANGUAGE sql STABLE
@@ -28,10 +31,15 @@ CREATE POLICY "Users can view own profile"
   USING (id = auth.uid() OR (SELECT {{SUPABASE_SCHEMA}}.is_admin()));
 
 -- Users can update own full_name
+-- NOTE: GRANT UPDATE (full_name) in 001 restricts which columns authenticated users can
+-- actually modify. This RLS policy controls row-level access; the GRANT controls column-level.
 CREATE POLICY "Users can update own profile"
   ON {{SUPABASE_SCHEMA}}.user_profiles FOR UPDATE TO authenticated
   USING (id = auth.uid())
   WITH CHECK (id = auth.uid());
+
+-- NOTE: No INSERT policy needed for authenticated users. Profile creation is handled by the
+-- create_user_profile() SECURITY DEFINER trigger in 001 (runs as table owner, bypasses RLS).
 
 -- Service role has full access
 CREATE POLICY "Service role full access"

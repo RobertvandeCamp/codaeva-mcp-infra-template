@@ -36,6 +36,8 @@ new McpServerStack(app, `${projectName}-mcp-server`, {
   serverName: `${projectName}-mcp-server`,
   ecrRepoName: `${projectName}-mcp-server`,
   sharedOutputs: shared.outputs,
+  // TODO: Set via AWS Console > App Runner > Environment variables after deploy
+  // These are runtime secrets that differ per environment (see docs/SETUP.md)
   supabaseUrl: 'https://placeholder.supabase.co',
   supabaseAnonKey: 'placeholder',
 });
@@ -47,6 +49,7 @@ new McpServerStack(app, `${projectName}-mcp-server`, {
 //   serverName: `${projectName}-supplier-mcp`,
 //   ecrRepoName: `${projectName}-supplier-mcp`,
 //   sharedOutputs: shared.outputs,
+//   // TODO: Set via AWS Console > App Runner > Environment variables after deploy
 //   supabaseUrl: 'https://placeholder.supabase.co',
 //   supabaseAnonKey: 'placeholder',
 // });

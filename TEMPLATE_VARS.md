@@ -27,7 +27,7 @@ SECRETS_PREFIX="your-project"
 GITHUB_OWNER="YourGitHub"
 AWS_REGION="eu-central-1"
 
-find . -type f \( -name "*.ts" -o -name "*.json" -o -name "*.md" -o -name "*.sql" -o -name "*.toml" \) \
+find . -type f \( -name "*.ts" -o -name "*.json" -o -name "*.md" -o -name "*.sql" -o -name "*.toml" -o -name "*.example" \) \
   -not -path "*/node_modules/*" -not -path "*/.git/*" \
   -exec sed -i '' \
     -e "s/{{PROJECT_NAME}}/$PROJECT_NAME/g" \
