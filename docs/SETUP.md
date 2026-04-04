@@ -75,7 +75,7 @@ npx cdk deploy --all
 
 This deploys:
 - **SharedStack**: Secrets Manager entry for Supabase service key
-- **McpServerStack**: App Runner service + ECR repository + IAM roles
+- **McpServerStack**: ECS Express service + ECR repository + IAM roles (task execution + infrastructure)
 - **ConsentStack**: Amplify hosting for OAuth consent app
 
 ## Step 7: Populate Supabase Service Key
@@ -103,8 +103,9 @@ This injects `role` and `is_admin` claims into every JWT token.
 
 - [ ] Create ECR repository: `aws ecr create-repository --repository-name {{PROJECT_NAME}}-mcp-server`
 - [ ] Build and push Docker image to ECR (see MCP server repo README)
-- [ ] Set App Runner environment variables in AWS Console (SUPABASE_URL, SUPABASE_ANON_KEY)
+- [ ] Store Supabase URL and anon key in Secrets Manager or update CDK stack environment variables
 - [ ] Set Amplify environment variables in AWS Console (VITE_SUPABASE_URL, VITE_SUPABASE_ANON_KEY)
-- [ ] Verify App Runner service is running: check the `AppRunnerServiceUrl` output
+- [ ] Verify ECS Express service is running: check the `ServiceUrl` output
+- [ ] Tune ALB idle timeout to 120s for MCP SSE streaming: `aws elbv2 modify-load-balancer-attributes --load-balancer-arn <LoadBalancerArn> --attributes Key=idle_timeout.timeout_seconds,Value=120`
 - [ ] Verify Amplify app is deployed: check the `AmplifyAppUrl` output
 - [ ] Create first admin user in Supabase Auth and set `is_admin = true` in `user_profiles`

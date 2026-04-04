@@ -15,7 +15,7 @@ Infrastructure overview for the MCP project.
            ┌────────▼───────┐ ┌───▼────────┐ ┌──▼──────────────┐
            │ McpServerStack │ │ McpServer  │ │  ConsentStack   │
            │   (primary)    │ │ Stack (2+) │ │   (Amplify)     │
-           │ AppRunner+ECR  │ │ (optional) │ │ OAuth Consent   │
+           │ ECS Express+ECR│ │ (optional) │ │ OAuth Consent   │
            └────────────────┘ └────────────┘ └─────────────────┘
 ```
 
@@ -37,14 +37,14 @@ One instance per MCP server. Can be instantiated multiple times in `bin/app.ts`.
 
 | Resource | Type | Purpose |
 |----------|------|---------|
-| App Runner service | `@aws-cdk/aws-apprunner-alpha` | Runs MCP server container |
+| ECS Express service | `CfnExpressGatewayService` (aws-cdk-lib/aws-ecs) | Runs MCP server container with managed ALB |
 | ECR repository | `aws-cdk-lib/aws-ecr` | Docker image storage (referenced, created externally) |
-| Access role | IAM Role | Allows App Runner to pull from ECR |
-| Instance role | IAM Role | Allows container to read Secrets Manager |
+| Task execution role | IAM Role | Allows ECS to pull ECR images and read Secrets Manager |
+| Infrastructure role | IAM Role | Allows ECS to manage ALB, security groups, target groups |
 
-**Props:** `serverName`, `ecrRepoName`, `sharedOutputs`, `supabaseUrl`, `supabaseAnonKey`
+**Props:** `serverName`, `ecrRepoName`, `sharedOutputs`, `awsAccountId`
 
-**Outputs:** `AppRunnerServiceUrl`, `EcrRepositoryUri`, `HealthCheckUrl`
+**Outputs:** `ServiceUrl`, `EcrRepositoryUri`, `HealthCheckUrl`, `ServiceArn`, `LoadBalancerArn`
 
 ### ConsentStack
 
@@ -103,8 +103,8 @@ Helper functions:
 
 ### IAM Roles
 
-- **AppRunnerAccessRole**: Assumed by `build.apprunner.amazonaws.com`, grants ECR pull
-- **AppRunnerInstanceRole**: Assumed by `tasks.apprunner.amazonaws.com`, grants Secrets Manager read
+- **TaskExecutionRole**: Assumed by `ecs-tasks.amazonaws.com`, grants ECR pull (via AmazonECSTaskExecutionRolePolicy) + Secrets Manager read
+- **InfrastructureRole**: Assumed by `ecs.amazonaws.com` (with SourceAccount/SourceArn conditions), grants ALB/SG management (via AmazonECSInfrastructureRoleforExpressGatewayServices)
 
 ### RLS Policies
 
