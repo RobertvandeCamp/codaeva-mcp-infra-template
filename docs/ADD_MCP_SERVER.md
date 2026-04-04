@@ -18,15 +18,14 @@ new McpServerStack(app, `${projectName}-supplier-mcp`, {
   serverName: `${projectName}-supplier-mcp`,
   ecrRepoName: `${projectName}-supplier-mcp`,
   sharedOutputs: shared.outputs,
-  supabaseUrl: 'https://your-project.supabase.co',
-  supabaseAnonKey: 'your-anon-key',
+  awsAccountId: '{{AWS_ACCOUNT_ID}}',
 });
 ```
 
 Each `McpServerStack` creates its own:
-- App Runner service
-- IAM access role (ECR pull)
-- IAM instance role (Secrets Manager read)
+- ECS Express service (with managed ALB)
+- Task execution role (ECR pull + Secrets Manager read)
+- Infrastructure role (ALB/SG management)
 
 All servers share the same Secrets Manager entry from SharedStack.
 
@@ -65,6 +64,6 @@ Keep names consistent across all resources:
 | Resource | Name |
 |----------|------|
 | CDK stack ID | `${projectName}-supplier-mcp` |
-| App Runner service | `${projectName}-supplier-mcp` |
+| ECS Express service | `${projectName}-supplier-mcp` |
 | ECR repository | `${projectName}-supplier-mcp` |
 | GitHub repo | `${projectName}-supplier-mcp` |
