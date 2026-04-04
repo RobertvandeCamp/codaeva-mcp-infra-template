@@ -29,17 +29,14 @@ new ConsentStack(app, `${projectName}-consent`, {
   githubRepo: `${projectName}-oauth-consent`,
 });
 
-// Primary MCP Server (AppRunner + ECR)
+// Primary MCP Server (ECS Express Mode + ECR)
 new McpServerStack(app, `${projectName}-mcp-server`, {
   env,
   description: `{{DISPLAY_NAME}} - MCP Server`,
   serverName: `${projectName}-mcp-server`,
   ecrRepoName: `${projectName}-mcp-server`,
   sharedOutputs: shared.outputs,
-  // TODO: Set via AWS Console > App Runner > Environment variables after deploy
-  // These are runtime secrets that differ per environment (see docs/SETUP.md)
-  supabaseUrl: 'https://placeholder.supabase.co',
-  supabaseAnonKey: 'placeholder',
+  awsAccountId: '{{AWS_ACCOUNT_ID}}',
 });
 
 // To add another MCP server, uncomment and customize:
@@ -49,7 +46,5 @@ new McpServerStack(app, `${projectName}-mcp-server`, {
 //   serverName: `${projectName}-supplier-mcp`,
 //   ecrRepoName: `${projectName}-supplier-mcp`,
 //   sharedOutputs: shared.outputs,
-//   // TODO: Set via AWS Console > App Runner > Environment variables after deploy
-//   supabaseUrl: 'https://placeholder.supabase.co',
-//   supabaseAnonKey: 'placeholder',
+//   awsAccountId: '{{AWS_ACCOUNT_ID}}',
 // });
