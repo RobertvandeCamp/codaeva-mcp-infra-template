@@ -126,5 +126,15 @@ export class McpServerStack extends cdk.Stack {
       value: service.attrEcsManagedResourceArnsIngressPathLoadBalancerArn,
       description: 'ALB ARN for idle timeout tuning (set to 120s post-deploy)',
     });
+
+    new cdk.CfnOutput(this, 'TaskExecutionRoleArn', {
+      value: executionRole.roleArn,
+      description: 'Task execution role ARN for ECS Express deploy action',
+    });
+
+    new cdk.CfnOutput(this, 'InfrastructureRoleArn', {
+      value: infrastructureRole.roleArn,
+      description: 'Infrastructure role ARN for ECS Express deploy action',
+    });
   }
 }
