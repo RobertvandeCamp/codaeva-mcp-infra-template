@@ -42,9 +42,13 @@ One instance per MCP server. Can be instantiated multiple times in `bin/app.ts`.
 | Task execution role | IAM Role | Allows ECS to pull ECR images and read Secrets Manager |
 | Infrastructure role | IAM Role | Allows ECS to manage ALB, security groups, target groups |
 
-**Props:** `serverName`, `ecrRepoName`, `sharedOutputs`, `awsAccountId`
+**Props:** `serverName`, `ecrRepoName`, `sharedOutputs`, `awsAccountId`, `clusterName?`
 
-**Outputs:** `ServiceUrl`, `EcrRepositoryUri`, `HealthCheckUrl`, `ServiceArn`, `LoadBalancerArn`
+When `clusterName` is provided, the service is placed in a dedicated ECS cluster (must exist before deploy). Without it, services use the `default` cluster. Use dedicated clusters to isolate projects -- see [ECS_EXPRESS_GATEWAY.md](./ECS_EXPRESS_GATEWAY.md).
+
+**Secrets:** Use `fromSecretCompleteArn` with full ARNs (including random suffix). `fromSecretNameV2` generates partial ARNs that fail IAM policy matching at container startup. See [SETUP.md](./SETUP.md#secrets-manager-use-full-arns).
+
+**Outputs:** `ServiceUrl`, `EcrRepositoryUri`, `HealthCheckUrl`, `ServiceArn`, `LoadBalancerArn`, `TaskExecutionRoleArn`, `InfrastructureRoleArn`
 
 ### ConsentStack
 

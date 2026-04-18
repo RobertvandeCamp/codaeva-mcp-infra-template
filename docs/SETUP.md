@@ -99,13 +99,105 @@ The `custom_access_token_hook` must be enabled manually in the Supabase dashboar
 
 This injects `role` and `is_admin` claims into every JWT token.
 
+## Important: Deploy Order
+
+ECS Express requires resources to exist **before** CDK deploy. The correct order is:
+
+1. ECR repository (must exist for CDK to reference)
+2. Docker image pushed to ECR (ECS Express fails with "No rollback candidate" if the repo is empty)
+3. Secrets Manager entries populated with real values
+4. ECS cluster created (if using a dedicated cluster)
+5. CDK deploy
+6. ALB idle timeout tuning (post-deploy)
+
+Skipping steps 2 or 4 causes cryptic CloudFormation errors that are hard to debug.
+
+### Step A: Create ECR Repository
+
+```bash
+aws ecr create-repository --repository-name {{PROJECT_NAME}}-mcp-server --region {{AWS_REGION}}
+```
+
+### Step B: Build and Push Docker Image
+
+The ECR repo must contain at least one image before CDK deploy. ECS Express tries to start a container immediately; an empty repo causes "No rollback candidate was found to run the rollback."
+
+```bash
+# Login to ECR
+aws ecr get-login-password --region {{AWS_REGION}} | \
+  docker login --username AWS --password-stdin <account-id>.dkr.ecr.{{AWS_REGION}}.amazonaws.com
+
+# Build and push (use --platform linux/amd64 on Apple Silicon)
+docker buildx build --platform linux/amd64 -f docker/Dockerfile \
+  -t <account-id>.dkr.ecr.{{AWS_REGION}}.amazonaws.com/{{PROJECT_NAME}}-mcp-server:latest \
+  --push .
+```
+
+### Step C: Create ECS Cluster (optional)
+
+By default, services go into the `default` ECS cluster. To isolate projects:
+
+```bash
+aws ecs create-cluster --cluster-name {{PROJECT_NAME}} --region {{AWS_REGION}}
+```
+
+Then add `clusterName: '{{PROJECT_NAME}}'` to the McpServerStack props in `bin/app.ts`. See [ECS_EXPRESS_GATEWAY.md](./ECS_EXPRESS_GATEWAY.md) for sharing vs. splitting decisions.
+
+### Step D: CDK Deploy
+
+Now safe to deploy:
+
+```bash
+cd infra
+npm install
+npx cdk bootstrap  # first time only
+npx cdk deploy --all
+```
+
 ## Post-deploy Checklist
 
-- [ ] Create ECR repository: `aws ecr create-repository --repository-name {{PROJECT_NAME}}-mcp-server`
-- [ ] Build and push Docker image to ECR (see MCP server repo README)
 - [ ] Store Supabase URL and anon key in Secrets Manager or update CDK stack environment variables
 - [ ] Set Amplify environment variables in AWS Console (VITE_SUPABASE_URL, VITE_SUPABASE_ANON_KEY)
 - [ ] Verify ECS Express service is running: check the `ServiceUrl` output
 - [ ] Tune ALB idle timeout to 120s for MCP SSE streaming: `aws elbv2 modify-load-balancer-attributes --load-balancer-arn <LoadBalancerArn> --attributes Key=idle_timeout.timeout_seconds,Value=120`
 - [ ] Verify Amplify app is deployed: check the `AmplifyAppUrl` output
 - [ ] Create first admin user in Supabase Auth and set `is_admin = true` in `user_profiles`
+- [ ] Configure GitHub Secrets for CI/CD (see GitHub Actions section below)
+
+## IAM User for CI/CD
+
+Create a dedicated IAM user for CDK deploys and CI/CD pipelines. The user needs permissions for ECS Express, ECR, CloudFormation, Secrets Manager, EC2 networking, ALB, CloudWatch Logs, and auto-scaling.
+
+**Key permission notes:**
+- `logs:*` on `*` is required -- ECS Express creates log groups with its own naming scheme (e.g., `/aws/ecs/<cluster>/<service>-<hash>`)
+- `ecs:*` is needed for `CfnExpressGatewayService` (not covered by standard ECS policies)
+- `sts:AssumeRole` on `cdk-*` roles is needed for CDK deploys through CloudFormation
+
+```bash
+# Create user
+aws iam create-user --user-name {{PROJECT_NAME}}-ecs-user
+
+# Create and attach policy (see bratra-ecs-deploy-policy for a working example)
+aws iam create-access-key --user-name {{PROJECT_NAME}}-ecs-user
+```
+
+## Secrets Manager: Use Full ARNs
+
+When referencing secrets in CDK, always use `fromSecretCompleteArn` with the **full ARN** (including the random 6-character suffix). Using `fromSecretNameV2` generates a partial ARN that won't match in IAM policies, causing "AccessDeniedException" at container startup.
+
+```typescript
+// CORRECT: full ARN with random suffix
+const secret = secretsmanager.Secret.fromSecretCompleteArn(
+  this, 'MySecret', 'arn:aws:secretsmanager:eu-central-1:123456789:secret:my-secret-aBcDeF',
+);
+
+// WRONG: partial ARN, IAM policy won't match
+const secret = secretsmanager.Secret.fromSecretNameV2(
+  this, 'MySecret', 'my-secret',
+);
+```
+
+Get the full ARN after creating a secret:
+```bash
+aws secretsmanager describe-secret --secret-id my-secret --query ARN --output text
+```
